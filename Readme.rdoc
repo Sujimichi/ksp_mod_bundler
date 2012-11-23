@@ -1,0 +1,3 @@
+=KSP Mod Manager
+well it might be at some point.
+right now its just a half cup of disassociated ruby
