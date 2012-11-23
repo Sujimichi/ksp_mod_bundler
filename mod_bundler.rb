@@ -1,16 +1,16 @@
 #!/usr/bin/env ruby
 
 class ModBundler
-  KSP_ROOT = "./KSPv0.17"
+  KSP_ROOT = File.join(File.dirname(__FILE__), "KSPv0.17")
 
   def initialize args = []
     craft_file = args[0]
-    craft_name = craft_file.split("/").last.sub(".craft","")
+    craft_name = craft_file.split(File.join("","")).last.sub(".craft","")
     @working_dir = Dir.getwd
     raise "You must specify a craft file" if craft_file.nil? || craft_file.empty? || !craft_file.match(/.craft$/)
     
     craft = Craft.new craft_file #read craft file and determine its parts
-    current_parts = PartFinder.new "#{KSP_ROOT}/Parts" #read parts dir and index parts    
+    current_parts = PartFinder.new File.join(KSP_ROOT, "Parts") #read parts dir and index parts    
     required_parts = current_parts.select_for craft #determine which indexed parts are in craft
 
     build_bundle :with => required_parts, :for => craft_name
@@ -39,32 +39,33 @@ class ModBundler
       zipfile.mkdir("Plugins")
 
       print "Carefully hand picking parts"
+      parts_path = File.join(KSP_ROOT, "Parts", "")
       required_parts.each do |part_folder|
-        path = "#{KSP_ROOT}/Parts/#{part_folder}/**/**"
-        Dir[path].each do |file|
-          zip_path = file.sub("#{KSP_ROOT}/Parts/","")
-          zipfile.add("Parts/#{zip_path}",file)  
-          print "."
-        end
+        parts = File.join(KSP_ROOT, "Parts", part_folder, "**", "**")
+        zip_files_into_folder zipfile, parts, "Parts", parts_path
       end
+      puts "Done\n"
 
       #add all the Plugins from the KSP plugins folder
-      print "\nadding ALL plugins, whateva!"
-      Dir["#{KSP_ROOT}/Plugins/**/*.dll"].each do |file|
-        zip_path = file.split("/").last
-        zipfile.add("Plugins/#{zip_path}",file)  
-        print "."
-      end
+      print "\nadding ALL plugins, whateva!"     
+      plugins = File.join(KSP_ROOT, "Plugins", "**", "*.dll")
+      plugins_path = File.join(KSP_ROOT, "Plugins", "")
+      zip_files_into_folder zipfile, plugins, "Plugins", plugins_path
+      puts "Done\n"
     }
 
     bundle_size = (File.size?("#{craft_name}_mod_bundle.zip").to_f/2**20).round(2)
-
+    
     puts "\n\nBundle Built - #{bundle_size}MB"
-
   end
 
-
-
+  def zip_files_into_folder zipfile, files, zip_folder, replace_str = ""
+    Dir[files].each do |file|
+      zip_path = file.sub(replace_str,"") 
+      zipfile.add(File.join(zip_folder, zip_path),file)  
+      print "."
+    end
+  end
 
 end
 
@@ -180,6 +181,9 @@ class ModZipReader
 
 
 end
+
+
+
 
 
 ModBundler.new ARGV
